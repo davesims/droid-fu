@@ -94,8 +94,7 @@ public abstract class CachedModel implements Parcelable {
      *            Class of desired cached object
      * @return Object from cache based upon given parameters.
      */
-    public static CachedModel find(ModelCache modelCache, String id,
-            Class<? extends CachedModel> clazz) {
+    public static CachedModel find(ModelCache modelCache, String id, Class<? extends CachedModel> clazz) {
         // Create empty object of type
         CachedModel testObject;
         try {
@@ -233,7 +232,6 @@ public abstract class CachedModel implements Parcelable {
     /**
      * @see android.os.Parcelable#describeContents()
      */
-    @Override
     public int describeContents() {
         return 0;
     }
@@ -241,7 +239,6 @@ public abstract class CachedModel implements Parcelable {
     /**
      * @see android.os.Parcelable#writeToParcel(android.os.Parcel, int)
      */
-    @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(id);
         dest.writeLong(transactionId);

@@ -66,7 +66,7 @@ public abstract class AbstractCache<KeyT, ValT> implements Map<KeyT, ValT> {
 
     private ConcurrentMap<KeyT, ValT> cache;
 
-    private String name;
+    protected String name;
     
     private long expirationInMinutes;
 
@@ -151,6 +151,7 @@ public abstract class AbstractCache<KeyT, ValT> implements Map<KeyT, ValT> {
         setRootDir(rootDir);
 
         File outFile = new File(diskCacheDirectory);
+         
         if (outFile.mkdirs()) {
             File nomedia = new File(diskCacheDirectory, ".nomedia");
             try {
@@ -255,7 +256,7 @@ public abstract class AbstractCache<KeyT, ValT> implements Map<KeyT, ValT> {
     public synchronized ValT get(Object elementKey) {
         KeyT key = (KeyT) elementKey;
         ValT value = cache.get(key);
-        if (value != null) {
+        if (value != null && testMemCacheIsValid(key) ) {
             // memory hit
             Log.d(name, "MEM cache hit for " + key.toString());
             return value;
@@ -263,18 +264,7 @@ public abstract class AbstractCache<KeyT, ValT> implements Map<KeyT, ValT> {
 
         // memory miss, try reading from disk
         File file = getFileForKey(key);
-        if (file.exists()) {
-        	// if file older than expirationInMinutes, remove it
-        	long lastModified = file.lastModified();
-        	Date now = new Date();
-        	long ageInMinutes = ((now.getTime() - lastModified) / (1000*60));
-        	
-        	if (ageInMinutes >= expirationInMinutes) {
-        		Log.d(name, "DISK cache expiration for file " + file.toString());
-        		file.delete();
-        		return null;
-        	}
-        	
+        if (file.exists() && testFileCacheIsValid(file)) {
         	// disk hit
             Log.d(name, "DISK cache hit for " + key.toString());
             try {
@@ -288,11 +278,34 @@ public abstract class AbstractCache<KeyT, ValT> implements Map<KeyT, ValT> {
                 return null;
             }
             cache.put(key, value);
-            return value;
+            return value; 
         }
 
         // cache miss
         return null;
+    }
+
+    /**
+     * To be overridden by a child class, returns true otherwise. Designed for use with a custom expriation rule for 
+     * MEM cache values. 
+     * @param value
+     * @return
+     */
+    protected boolean testMemCacheIsValid(KeyT value) {
+        return true;
+    }
+
+    protected boolean testFileCacheIsValid(File file) {
+        long lastModified = file.lastModified();
+        Date now = new Date();
+        long ageInMinutes = ((now.getTime() - lastModified) / (1000*60));
+       
+        if (ageInMinutes >= expirationInMinutes) {
+        	Log.d(name, "DISK cache expiration for file " + file.toString());
+        	file.delete();
+        	return false;
+        }
+        return true;
     }
 
     /**
